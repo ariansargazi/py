@@ -1,8 +1,3 @@
-""" Written by Brian Hou for CSE571: Probabilistic Robotics (Winter 2019)
-    Modified by Wentao Yuan for CSE571: Probabilistic Robotics (Spring 2022)
-    Modified by Aaron Walsman and Zoey Chen for CSEP590A: Robotics (Spring 2023)
-"""
-
 import time
 import argparse
 import numpy as np
@@ -28,7 +23,7 @@ class OpenLoopRectanglePolicy:
         return u.reshape((-1, 1))
 
 
-def localize(env, policy, filt, x0, num_steps, plot=False, step_pause=0., step_breakpoint=False):
+def pf_localization(env, policy, filt, x0, num_steps, plot=False, step_pause=0., step_breakpoint=False):
 
     # Collect data from an entire rollout
     (states_noisefree, states_real, action_noisefree, obs_noisefree, obs_real) = env.rollout(x0,
@@ -98,19 +93,17 @@ def localize(env, policy, filt, x0, num_steps, plot=False, step_pause=0., step_b
 
     mean_position_error = position_errors.mean()
     mean_mahalanobis_error = mahalanobis_errors.mean()
-    anees = mean_mahalanobis_error / 3
 
     if filt is not None:
         print('-' * 80)
         print('Mean position error:', mean_position_error)
         print('Mean Mahalanobis error:', mean_mahalanobis_error)
-        print('ANEES:', anees)
 
     if plot:
         while True:
             env.p.stepSimulation()
 
-    return mean_position_error, anees
+    return mean_position_error
 
 
 def setup_parser():
@@ -157,7 +150,7 @@ if __name__ == '__main__':
     env = Field(
         args.data_factor * alphas,
         args.data_factor * beta,
-        gui=args.plot
+        gui=args.gui
     )
 
     policy = OpenLoopRectanglePolicy()
@@ -173,4 +166,4 @@ if __name__ == '__main__':
         args.filter_factor * beta
         )
 
-    localize(env, policy, filt, initial_mean, args.num_steps, args.plot, args.step_pause, args.step_breakpoint)
+    pf_localization(env, policy, filt, initial_mean, args.num_steps, args.gui, args.step_pause, args.step_breakpoint)

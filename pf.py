@@ -1,11 +1,3 @@
-"""
-    Curtesy of:
-        Written by Brian Hou for CSE571: Probabilistic Robotics (Winter 2019)
-        Modified by Wentao Yuan for CSE571: Probabilistic Robotics (Spring 2022)
-
-    Modified by Amin Abyaneh, McGill University, Winter 2024.
-"""
-
 import numpy as np
 
 from env import Field

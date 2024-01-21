@@ -51,11 +51,13 @@ class Field:
     ):
         self.alphas = alphas
         self.beta = beta
+
         # initialize pybullet environment
         if gui:
             physicsClient = p.connect(p.GUI)
         else:
             physicsClient = p.connect(p.DIRECT)
+
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setGravity(0,0,-10)
         self.p = p
@@ -137,6 +139,8 @@ class Field:
     def sample_noisy_observation(self, x, marker_id, beta=None):
         """Sample a noisy observation given a current state, landmark ID, and noise
         parameters.
+
+        NOTE: this is just a naive observation model, improve it for additional points.
 
         x: current state
         marker_id: int
@@ -277,83 +281,6 @@ class Field:
             kwargs['replaceItemUniqueId'] = self.particle_id
         self.particle_id = self.p.addUserDebugPoints(
             xyz, color, pointSize=2, **kwargs)
-
-    def render_panorama(self, resolution=32):
-        car_pos, car_orient = self.p.getBasePositionAndOrientation(
-            self.racer_car_id)
-        steering = self.p.getEulerFromQuaternion(car_orient)[2] + np.pi
-
-        camera_height = 0.2
-
-        # left camera
-        left_cam = np.array(car_pos) + [0,0,camera_height]
-        left_cam_to = np.array([
-            car_pos[0] + np.cos(steering + 1 * np.pi / 2) * 10,
-            car_pos[1] + np.sin(steering + 1 * np.pi / 2) * 10,
-            car_pos[2] + camera_height,
-        ])
-
-        # front camera
-        front_cam = np.array(car_pos) + [0,0,camera_height]
-        front_cam_to = np.array([
-            car_pos[0] + np.cos(steering + 0 * np.pi / 2) * 10,
-            car_pos[1] + np.sin(steering + 0 * np.pi / 2) * 10,
-            car_pos[2] + camera_height,
-        ])
-
-        # right camera
-        right_cam = np.array(car_pos) + [0,0,camera_height]
-        right_cam_to = np.array([
-            car_pos[0] + np.cos(steering + 3 * np.pi / 2) * 10,
-            car_pos[1] + np.sin(steering + 3 * np.pi / 2) * 10,
-            car_pos[2] + camera_height,
-        ])
-
-        # back camera
-        back_cam = np.array(car_pos) + [0,0,camera_height]
-        back_cam_to = np.array([
-            car_pos[0] + np.cos(steering + 2 * np.pi / 2) * 10,
-            car_pos[1] + np.sin(steering + 2 * np.pi / 2) * 10,
-            car_pos[2] + camera_height,
-        ])
-
-        cam_eyes = [left_cam, front_cam, right_cam, back_cam]
-        cam_targets = [left_cam_to, front_cam_to, right_cam_to, back_cam_to]
-
-        images = []
-        for i in range(4):
-            # Define the camera view matrix
-            view_matrix = self.p.computeViewMatrix(
-                cameraEyePosition=cam_eyes[i],
-                cameraTargetPosition=cam_targets[i],
-                cameraUpVector = [0,0,1]
-            )
-            # Define the camera projection matrix
-            projection_matrix = self.p.computeProjectionMatrixFOV(
-                fov=90,
-                aspect=1.0,
-                nearVal=0.1,
-                farVal=100.0
-            )
-            # Add the camera to the scene
-            _, _, rgb, depth, segm = self.p.getCameraImage(
-                width = resolution,
-                height = resolution,
-                viewMatrix=view_matrix,
-                projectionMatrix=projection_matrix,
-                renderer=self.p.ER_BULLET_HARDWARE_OPENGL
-            )
-
-            images.append(rgb[:,:,:3])
-
-        l,f,r,b = images
-        rgb_strip = np.concatenate([l,f,r,b], axis=1)
-        rgb_strip = np.concatenate(
-            [rgb_strip[:,-resolution//2:], rgb_strip[:,:-resolution//2]],
-            axis=1,
-        )
-
-        return rgb_strip
 
     @staticmethod
     def minimized_angle(angle):
