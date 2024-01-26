@@ -12,10 +12,14 @@ def plot_mean_error(mean_array, title: str = ""):
     plt.ylabel('Mean Error')
     plt.show()
 
-def plot_squared_sum_diag_cov(covariance_mat, title: str = ""):
-    diag_sum = np.sum(np.square(np.diag(covariance_mat)))
+def plot_squared_sum_diag_cov(covariance_matrices, title: str = ""):
     plt.figure(figsize=(6, 4))
-    plt.plot(np.arange(len(covariance_array)), [diag_sum] * len(covariance_array))
+
+    diag_sums = []
+    for covariance_mat in covariance_matrices:
+        diag_sums.append(np.sum(np.square(np.diag(covariance_mat))))
+    
+    plt.plot(diag_sums)
     plt.title(title)
     plt.xlabel('Step')
     plt.ylabel('Covariance')
