@@ -34,7 +34,8 @@ def pf_localization(env, policy, filt, x0, num_steps, plot=False, step_pause=0.,
     errors = np.zeros((num_steps, 3))
     position_errors = np.zeros(num_steps)
     mahalanobis_errors = np.zeros(num_steps)
-
+    cov_mats = []
+    
     for i in range(num_steps):
         x_real = states_real[i+1, :].reshape((-1, 1))
         u_noisefree = action_noisefree[i, :].reshape((-1, 1))
@@ -47,6 +48,7 @@ def pf_localization(env, policy, filt, x0, num_steps, plot=False, step_pause=0.,
             # filters only know the action and observation
             mean, cov = filt.update(env, u_noisefree, z_real, marker_id)
         states_filter[i+1, :] = mean.ravel()
+        cov_mats.append(cov)
 
         if plot:
             # move the robot
