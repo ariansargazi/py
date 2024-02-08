@@ -43,7 +43,9 @@ class ParticleFilter:
 
         # YOUR CODE HERE
 
+        self.particles = self.resample(self.particles,self.weights)
         mean, cov = self.mean_and_variance(self.particles)
+
         return mean, cov
 
     def resample(self, particles, weights):
@@ -53,8 +55,9 @@ class ParticleFilter:
         particles: (n x 3) matrix of poses
         weights: (n,) array of weights
         """
+
         # YOUR CODE HERE
-        return particles
+        return resampled_particles
 
     def mean_and_variance(self, particles):
         """Compute the mean and covariance matrix for a set of equally-weighted
