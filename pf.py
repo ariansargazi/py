@@ -39,7 +39,7 @@ class ParticleFilter:
         z: landmark observation
         marker_id: landmark ID
         """
-        particles = self.move_particles(env, u)
+        self.particles = self.move_particles(env, u)
 
         # YOUR CODE HERE
 
@@ -55,6 +55,7 @@ class ParticleFilter:
         particles: (n x 3) matrix of poses
         weights: (n,) array of weights
         """
+        resampled_particles = particles # Needs to be removed when implementing resample
 
         # YOUR CODE HERE
         return resampled_particles
