@@ -28,7 +28,7 @@ class ParticleFilter:
         new_particles = self.particles
 
         # YOUR CODE HERE
-
+        new_particles = np.array([env.forward(x, u) for x in self.particles])
         return new_particles
 
     def update(self, env, u, z, marker_id):
@@ -39,10 +39,20 @@ class ParticleFilter:
         z: landmark observation
         marker_id: landmark ID
         """
-        self.particles = self.move_particles(env, u)
-
+        #self.particles = self.move_particles(env, u)
+        u_noisy = env.sample_noisy_action(u, self.alphas)
+        self.particles = self.move_particles(env, u_noisy)
         # YOUR CODE HERE
-
+        for m in range(self.num_particles):
+            x_t = self.particles[m, :].reshape((-1, 1))
+            z_noisy = env.sample_noisy_observation(x_t, marker_id, self.beta)
+            z_expected = env.observe(x_t, marker_id)
+            error = z - z_expected
+            self.weights[m] = env.likelihood(error, self.beta)
+        
+        self.weights += 1.e-300      # avoid round-off to zero
+        self.weights /= sum(self.weights)  # normalize
+        
         self.particles = self.resample(self.particles,self.weights)
         mean, cov = self.mean_and_variance(self.particles)
 
@@ -55,9 +65,10 @@ class ParticleFilter:
         particles: (n x 3) matrix of poses
         weights: (n,) array of weights
         """
-        resampled_particles = particles # Needs to be removed when implementing resample
-
         # YOUR CODE HERE
+        indices = np.random.choice(
+            range(self.num_particles), size=self.num_particles, replace=True, p=weights)
+        resampled_particles = particles[indices]
         return resampled_particles
 
     def mean_and_variance(self, particles):
