@@ -47,8 +47,8 @@ class ParticleFilter:
             x_t = self.particles[m, :].reshape((-1, 1))
             z_noisy = env.sample_noisy_observation(x_t, marker_id, self.beta)
             z_expected = env.observe(x_t, marker_id)
-            inovation = z - z_expected
-            self.weights[m] = env.likelihood(inovation, self.beta)
+            innovation = z - z_expected
+            self.weights[m] = env.likelihood(innovation, self.beta)
         
         self.weights += 1.e-300      
         self.weights /= sum(self.weights)  # normalize
