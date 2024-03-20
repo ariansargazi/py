@@ -50,7 +50,7 @@ class ParticleFilter:
             error = z - z_expected
             self.weights[m] = env.likelihood(error, self.beta)
         
-        self.weights += 1.e-300      # avoid round-off to zero
+        self.weights += 1.e-300      
         self.weights /= sum(self.weights)  # normalize
         
         self.particles = self.resample(self.particles,self.weights)
