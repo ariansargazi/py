@@ -21,7 +21,8 @@ class ParticleFilter:
         """
         # YOUR CODE HERE
         for i in range(self.num_particles):
-            self.particles[i, :] = env.sample_noisy_action(u, self.alphas).ravel()
+            self.particles[i, :] = env.sample_noisy_action(self, u, alphas=None).ravel()
+            forward(self, x, u):
         return self.particles
 
     def update(self, env, u, z, marker_id):
