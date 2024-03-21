@@ -19,6 +19,7 @@ class ParticleFilter:
 
         u: action
         """
+        # YOUR CODE HERE
         for i in range(self.num_particles):
             self.particles[i, :] = env.sample_noisy_action(u, self.alphas).ravel()
         return self.particles
@@ -32,7 +33,7 @@ class ParticleFilter:
         marker_id: landmark ID
         """
         self.particles = self.move_particles(env, u)
-
+        # YOUR CODE HERE
         for i in range(self.num_particles):
             expected_z = env.observe(self.particles[i, :].reshape(-1, 1), marker_id)
             innovation = z - expected_z
@@ -49,6 +50,7 @@ class ParticleFilter:
 
     def resample(self, particles, weights):
         """Sample new particles and weights given current particles and weights. Use the low-variance sampler."""
+        # YOUR CODE HERE
         N = len(particles)
         indices = []
         C = np.cumsum(weights)
