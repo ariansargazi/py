@@ -28,7 +28,7 @@ class ParticleFilter:
         new_particles = self.particles
 
         # YOUR CODE HERE
-        new_particles = np.array([env.forward(x, u) for x in self.particles])
+        new_particles = np.array([env.sample_noisy_action(u, self.alphas) for _ in range(self.num_particles)])
         return new_particles
 
     def update(self, env, u, z, marker_id):
@@ -43,17 +43,15 @@ class ParticleFilter:
         u_noisy = env.sample_noisy_action(u, self.alphas)
         self.particles = self.move_particles(env, u_noisy)
         # YOUR CODE HERE
-        for m in range(self.num_particles):
-            x_t = self.particles[m, :].reshape((-1, 1))
-            z_noisy = env.sample_noisy_observation(x_t, marker_id, self.beta)
-            z_expected = env.observe(x_t, marker_id)
-            innovation = z - z_expected
-            self.weights[m] = env.likelihood(innovation, self.beta)
-        
-        self.weights += 1.e-300      
-        self.weights /= sum(self.weights)  # normalize
-        
-        self.particles = self.resample(self.particles,self.weights)
+        for i in range(self.num_particles):
+        expected_z = env.observe(self.particles[i, :].reshape(-1, 1), marker_id)
+        innovation = z - expected_z
+        self.weights[i] = env.likelihood(innovation, self.beta)
+
+        self.weights += 1.e-300  
+        self.weights /= np.sum(self.weights)
+
+        self.particles = self.resample(self.particles, self.weights)
         mean, cov = self.mean_and_variance(self.particles)
 
         return mean, cov
@@ -66,28 +64,37 @@ class ParticleFilter:
         weights: (n,) array of weights
         """
         # YOUR CODE HERE
-        indices = np.random.choice(
-            range(self.num_particles), size=self.num_particles, replace=True, p=weights)
+        N = len(particles)
+        indices = []
+        C = np.cumsum(weights)
+        r = np.random.uniform(0, 1/N)
+        i = 0
+        u = r - 1/N
+        for m in range(N):
+          u += 1/N
+        while u > C[i]:
+          i += 1
+         indices.append(i)
+        
         resampled_particles = particles[indices]
         return resampled_particles
 
-def mean_and_variance(self, particles):
-    # Ensure particles is a 2D array
-    particles = particles.reshape(self.num_particles, -1)
-    
-    mean = particles.mean(axis=0)
-    mean[2] = np.arctan2(
-        np.sin(particles[:, 2]).sum(),
-        np.cos(particles[:, 2]).sum(),
-    )
+     def mean_and_variance(self, particles):
+        """Compute the mean and covariance matrix for a set of equally-weighted
+        particles.
 
-    zero_mean = particles - mean
-    for i in range(zero_mean.shape[0]):
-        zero_mean[i, 2] = Field.minimized_angle(zero_mean[i, 2])
-    
-    # Ensure zero_mean is 2D
-    zero_mean = zero_mean.reshape(self.num_particles, -1)
-    cov = np.dot(zero_mean.T, zero_mean) / self.num_particles
-    cov += np.eye(3) * 1e-6  # Avoid bad conditioning
+        particles: (n x 3) matrix of poses
+        """
+        mean = particles.mean(axis=0)
+        mean[2] = np.arctan2(
+            np.sin(particles[:, 2]).sum(),
+            np.cos(particles[:, 2]).sum(),
+        )
 
-    return mean.reshape((-1, 1)), cov
+        zero_mean = particles - mean
+        for i in range(zero_mean.shape[0]):
+            zero_mean[i, 2] = Field.minimized_angle(zero_mean[i, 2])
+        cov = np.dot(zero_mean.T, zero_mean) / self.num_particles
+        cov += np.eye(particles.shape[1]) * 1e-6  # Avoid bad conditioning
+
+        return mean.reshape((-1, 1)), cov
