@@ -31,31 +31,32 @@ class ParticleFilter:
         new_particles = np.array([env.sample_noisy_action(u, self.alphas) for _ in range(self.num_particles)])
         return new_particles
         
-        def update(self, env, u, z, marker_id):
-    """Update the state estimate after taking an action and receiving
-    a landmark observation.
+  def update(self, env, u, z, marker_id):
+        """Update the state estimate after taking an action and receiving
+        a landmark observation.
 
-    u: action
-    z: landmark observation
-    marker_id: landmark ID
-    """
-    self.particles = self.move_particles(env, u)
+        u: action
+        z: landmark observation
+        marker_id: landmark ID
+        """
+        # The body of the update method should be indented like this.
+        self.particles = self.move_particles(env, u)
 
-    # YOUR CODE HERE
-    for i in range(self.num_particles):
-        expected_z = env.observe(self.particles[i, :].reshape(-1, 1), marker_id)
-        innovation = z - expected_z
-        self.weights[i] = env.likelihood(innovation, self.beta)
+        # Compute the weights for each particle based on the observation z
+        for i in range(self.num_particles):
+            expected_z = env.observe(self.particles[i, :].reshape(-1, 1), marker_id)
+            innovation = z - expected_z
+            self.weights[i] = env.likelihood(innovation, self.beta)
 
-    # Normalize the weights
-    self.weights += 1.e-300  # Avoid division by zero
-    self.weights /= np.sum(self.weights)
+        # Normalize the weights
+        self.weights += 1.e-300  # Avoid division by zero
+        self.weights /= np.sum(self.weights)
 
-    # Resample the particles based on the updated weights
-    self.particles = self.resample(self.particles, self.weights)
-    mean, cov = self.mean_and_variance(self.particles)
+        # Resample the particles based on the updated weights
+        self.particles = self.resample(self.particles, self.weights)
+        mean, cov = self.mean_and_variance(self.particles)
 
-    return mean, cov
+        return mean, cov
         
 
     def resample(self, particles, weights):
