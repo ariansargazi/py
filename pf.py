@@ -39,20 +39,19 @@ class ParticleFilter:
         z: landmark observation
         marker_id: landmark ID
         """
-        #self.particles = self.move_particles(env, u)
-        u_noisy = env.sample_noisy_action(u, self.alphas)
-        self.particles = self.move_particles(env, u_noisy)
+        self.particles = self.move_particles(env, u)
         # YOUR CODE HERE
+
         for i in range(self.num_particles):
         expected_z = env.observe(self.particles[i, :].reshape(-1, 1), marker_id)
         innovation = z - expected_z
         self.weights[i] = env.likelihood(innovation, self.beta)
 
-        self.weights += 1.e-300  
+        self.weights += 1.e-300  # Avoid division by zero
         self.weights /= np.sum(self.weights)
 
         self.particles = self.resample(self.particles, self.weights)
-        mean, cov = self.mean_and_variance(self.particles)
+        mean, cov = self.mean_and_variance(self.particles) 
 
         return mean, cov
 
