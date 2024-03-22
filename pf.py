@@ -31,12 +31,13 @@ class ParticleFilter:
             innovation = z - expected_z
             self.weights[i] *= env.likelihood(innovation, self.beta)
         
+        # Avoiding numerical underflow
         max_weight = np.max(self.weights)
         if max_weight > 0:
             self.weights /= max_weight
         self.weights /= np.sum(self.weights)
         
-        
+        # Resample if necessary
         N_eff = 1 / np.sum(self.weights ** 2)
         if N_eff < self.num_particles / 2:
             self.particles = self.resample(self.particles, self.weights)
