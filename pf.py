@@ -18,11 +18,8 @@ class ParticleFilter:
     def move_particles(self, env, u):
         """Move particles according to the action `u` and add motion noise."""
         for i in range(self.num_particles):
-            # Apply the action to move the particle
-            self.particles[i, :] = env.forward(self.particles[i, :], u).ravel()
-            # Add noise
-            motion_noise = env.noise_from_motion(u, self.alphas)
-            self.particles[i, :] += np.random.multivariate_normal(np.zeros(3), motion_noise)
+            # Sample motion to move the particle
+            self.particles[i, :] = env.sample_noisy_action(self.particles[i, :], u).ravel()
         return self.particles
 
     def update(self, env, u, z, marker_id):
@@ -32,10 +29,11 @@ class ParticleFilter:
         for i in range(self.num_particles):
             expected_z = env.observe(self.particles[i, :], marker_id)
             innovation = z - expected_z
-            self.weights[i] *= env.likelihood(innovation, self.beta) + 1e-12
-
-        self.weights += 1.e-300      # Avoid round-off to zero
-        self.weights /= np.sum(self.weights)  # Normalize
+            self.weights[i] = env.likelihood(innovation, self.beta)
+        
+        # Avoid division by zero and normalize the weights
+        self.weights += 1.e-300
+        self.weights /= np.sum(self.weights)
 
         self.particles = self.resample(self.particles, self.weights)
         mean, cov = self.mean_and_variance(self.particles)
@@ -44,25 +42,29 @@ class ParticleFilter:
 
     def resample(self, particles, weights):
         """Resample particles to focus on high-probability regions."""
-        indices = []
-        C = [0.] + [np.sum(weights[:i+1]) for i in range(len(weights))]
-        u0, j = np.random.random(), 0
-        for u in [(u0+i)/len(weights) for i in range(len(weights))]:
-            while u > C[j]:
-                j += 1
-            indices.append(j-1)
+        M = len(weights)
+        indices = np.zeros(M, dtype=int)
+        cumulative_sum = np.cumsum(weights)
+        cumulative_sum[-1] = 1.0  # Ensure the sum is exactly 1
+        u0 = np.random.random() * (1.0/M)
+        position = u0
+        i = 0
+        for m in range(M):
+            while position > cumulative_sum[i]:
+                i += 1
+            indices[m] = i
+            position += 1.0/M
         return particles[indices]
 
     def mean_and_variance(self, particles):
         """Compute the mean and covariance matrix for a set of equally-weighted particles."""
-        mean = np.mean(particles, axis=0)
+        mean = np.average(particles, weights=self.weights, axis=0)
         mean[2] = np.arctan2(
-            np.sin(particles[:, 2]).sum(),
-            np.cos(particles[:, 2]).sum()
+            np.sum(np.sin(particles[:, 2])*self.weights),
+            np.sum(np.cos(particles[:, 2])*self.weights)
         )
         zero_mean_particles = particles - mean
         for i in range(len(zero_mean_particles)):
             zero_mean_particles[i, 2] = Field.minimized_angle(zero_mean_particles[i, 2])
-        cov = np.dot(zero_mean_particles.T, zero_mean_particles) / len(particles)
-        cov += np.eye(3) * 1e-12  # Add a small value to diagonal to ensure non-singularity
+        cov = np.cov(zero_mean_particles.T, aweights=self.weights)
         return mean.reshape((-1, 1)), cov
