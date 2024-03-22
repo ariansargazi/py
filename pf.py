@@ -18,50 +18,40 @@ class ParticleFilter:
         self.weights = np.ones(self.num_particles) / self.num_particles
 
     def move_particles(self, env, u):
-        """Update particles after taking an action u."""
-        # Move each particle according to the motion model (with noise)
+        # Move each particle according to the odometry motion model
+        new_particles = np.copy(self.particles)
         for i in range(self.num_particles):
-            self.particles[i, :] = env.sample_noisy_action(u, self.alphas).ravel()
-        return self.particles
+            new_particles[i, :] = env.sample_noisy_action(u, self.alphas).reshape(-1)
+        return new_particles
 
     def update(self, env, u, z, marker_id):
-        """Update the state estimate after taking an action and receiving
-        a landmark observation.
-
-        u: action
-        z: landmark observation
-        marker_id: landmark ID
-        """
-        # Move particles based on the action taken
-        self.move_particles(env, u)
-
-        # Update weights based on observation likelihood
+        # Update particle weights based on observation likelihood
+        self.particles = self.move_particles(env, u)
         for i in range(self.num_particles):
-            predicted_z = env.observe(self.particles[i, :], marker_id)
-            self.weights[i] = env.likelihood(z - predicted_z, self.beta)
-        
+            predicted_observation = env.observe(self.particles[i, :].reshape(-1, 1), marker_id)
+            self.weights[i] = env.likelihood(z - predicted_observation, self.beta)
+
         # Normalize the weights
         self.weights += 1e-300  # Avoid division by zero
-        self.weights /= np.sum(self.weights)
+        self.weights /= sum(self.weights)
 
-        # Resample particles based on updated weights
+        # Resample particles based on weights
         self.particles = self.resample(self.particles, self.weights)
-        
-        # Calculate new mean and covariance
-        mean, cov = self.mean_and_variance(self.particles)
 
+        # Calculate mean and covariance
+        mean, cov = self.mean_and_variance(self.particles)
         return mean, cov
 
     def resample(self, particles, weights):
-        """Sample new particles and weights given current particles and weights."""
-        # Cumulative sum of weights
-        cumulative_sum = np.cumsum(weights)
-        cumulative_sum[-1] = 1.0  # Ensure sum is exactly one
-        indexes = np.searchsorted(cumulative_sum, np.random.uniform(0, 1, self.num_particles))
-
-        # Resample according to indexes
-        resampled_particles = particles[indexes]
-
+        # Resample particles using systematic resampling
+        indices = []
+        C = [0.] + [np.sum(weights[:i+1]) for i in range(len(weights))]
+        u0, j = np.random.random(), 0
+        for u in [(u0 + i)/len(weights) for i in range(len(weights))]:
+            while u > C[j]:
+                j += 1
+            indices.append(j-1)
+        resampled_particles = particles[indices]
         return resampled_particles
 
     def mean_and_variance(self, particles):
