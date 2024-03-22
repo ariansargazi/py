@@ -56,7 +56,7 @@ class ParticleFilter:
                 i += 1
             else:
                 j += 1
-        return particles[indexes
+        return particles[indexes]
 
     def mean_and_variance(self, particles):
         """Compute the mean and covariance matrix for a set of equally-weighted
