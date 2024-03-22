@@ -19,10 +19,8 @@ class ParticleFilter:
 
         u: action
         """
-        # YOUR CODE HERE
         for i in range(self.num_particles):
-            self.particles[i, :] = env.sample_noisy_action(self, u, alphas=None).ravel()
-            forward(self, x, u):
+            self.particles[i, :] = env.sample_noisy_action(u, self.alphas).ravel()
         return self.particles
 
     def update(self, env, u, z, marker_id):
@@ -34,7 +32,7 @@ class ParticleFilter:
         marker_id: landmark ID
         """
         self.particles = self.move_particles(env, u)
-        # YOUR CODE HERE
+
         for i in range(self.num_particles):
             expected_z = env.observe(self.particles[i, :].reshape(-1, 1), marker_id)
             innovation = z - expected_z
@@ -50,7 +48,7 @@ class ParticleFilter:
         return mean, cov
 
 def resample(self, particles, weights):
-    # YOUR CODE HERE
+    """Sample new particles and weights using the systematic resampling method."""
     N = len(particles)
     positions = (np.arange(N) + np.random.random()) / N
 
