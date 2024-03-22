@@ -19,50 +19,46 @@ class ParticleFilter:
 
 
     def move_particles(self, env, u):
+        """Move particles according to the action `u` and add motion noise."""
         for i in range(self.num_particles):
-            translation_noise = np.random.normal(0, self.alphas[0] * abs(u[0]) + self.alphas[1] * abs(u[1]))
-            rotation_noise = np.random.normal(0, self.alphas[2] * abs(u[1]) + self.alphas[3] * (abs(u[0]) + abs(u[1])))
-            noise = np.array([translation_noise, 0, rotation_noise])
-            self.particles[i, :] = env.forward(self.particles[i, :].reshape(-1, 1), u).ravel() + noise
+            # Apply the action to move the particle
+            self.particles[i, :] = env.forward(self.particles[i, :].reshape(-1, 1), u).ravel()
+            # Add noise, ensuring it is the correct shape (a 3-element 1D array)
+            motion_noise = env.noise_from_motion(u, self.alphas)
+            noise = np.random.multivariate_normal(np.zeros(3), motion_noise)
+            self.particles[i, :] += noise
         return self.particles
 
     def update(self, env, u, z, marker_id):
-        self.particles = self.move_particles(env, u)
-        weights_sum = 0
+        """Update the state estimate after an action `u` and observation `z`."""
+        self.move_particles(env, u)
 
         for i in range(self.num_particles):
             expected_z = env.observe(self.particles[i, :].reshape(-1, 1), marker_id)
             innovation = z - expected_z
-            self.weights[i] *= (env.likelihood(innovation, self.beta) + 1e-12)
-            weights_sum += self.weights[i]
-
-        # Normalize weights safely
-        if weights_sum > 0:
-            self.weights /= weights_sum
+            # Update the weight, ensure likelihood is non-zero by adding a small constant
+            self.weights[i] *= env.likelihood(innovation, self.beta) + 1e-12
+        
+        # Normalize the weights to sum to 1, avoiding division by zero
+        weight_sum = np.sum(self.weights)
+        if weight_sum > 0:
+            self.weights /= weight_sum
         else:
-            self.weights = np.ones(self.num_particles) / self.num_particles  # Reset weights if sum is 0
-        N_eff = 1 / np.sum(self.weights ** 2)
-        if N_eff < self.num_particles / 2:
-            self.particles = self.resample(self.particles, self.weights)
+            self.weights = np.ones(self.num_particles) / self.num_particles
 
-        mean, cov = self.mean_and_variance(self.particles)
+        self.particles = self.resample()
+        mean, cov = self.mean_and_variance()
         return mean, cov
 
-    def resample(self, particles, weights):
-        N = self.num_particles
-        indexes = np.zeros(N, dtype=int)
-        cumulative_sum = np.cumsum(weights)
+    def resample(self):
+        """Resample particles to focus on high-probability regions."""
+        cumulative_sum = np.cumsum(self.weights)
         cumulative_sum[-1] = 1.0  # Ensure sum is exactly 1
-        positions = (np.arange(N) + np.random.uniform()) / N
-
-        i, j = 0, 0
-        while i < N:
-            if positions[i] < cumulative_sum[j]:
-                indexes[i] = j
-                i += 1
-            else:
-                j += 1
-        return particles[indexes, :]
+        indexes = np.searchsorted(cumulative_sum, np.random.rand(self.num_particles))
+        # Use advanced NumPy indexing to select new set of particles
+        resampled_particles = self.particles[indexes, :]
+        self.weights = np.ones(self.num_particles) / self.num_particles  # Reset weights
+        return resampled_particles
 
     def mean_and_variance(self, particles):
         """Compute the mean and covariance matrix for a set of equally-weighted
