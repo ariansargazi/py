@@ -32,7 +32,6 @@ class ParticleFilter:
         marker_id: landmark ID
         """
         self.particles = self.move_particles(env, u)
-
         for i in range(self.num_particles):
             expected_z = env.observe(self.particles[i, :].reshape(-1, 1), marker_id)
             innovation = z - expected_z
@@ -42,7 +41,7 @@ class ParticleFilter:
         self.weights += 1.e-300  # Avoid division by zero
         self.weights /= np.sum(self.weights)
 
-        self.particles = self.resample(self.particles, self.weights)
+        self.particles = self.resample()
         mean, cov = self.mean_and_variance(self.particles)
 
         return mean, cov
