@@ -19,7 +19,6 @@ class ParticleFilter:
             self.particles[i, :] = np.random.multivariate_normal(
                 self._init_mean.ravel(), self._init_cov)
         self.weights = np.ones(self.num_particles) / self.num_particles
-
     def move_particles(self, env, u):
         """Update particles after taking an action u."""
         for i in range(self.num_particles):
@@ -42,20 +41,10 @@ class ParticleFilter:
         return mean, cov
 
     def resample(self, particles, weights):
-        """Resample particles according to the weights using a low-variance sampler."""
-        M = self.num_particles
-        indexes = np.zeros(M, 'i')
+        """Resample particles according to the weights."""
         cumulative_sum = np.cumsum(weights)
         cumulative_sum[-1] = 1.  # Avoid round-off error
-        position = (np.arange(M) + np.random.rand()) / M
-
-        i, j = 0, 0
-        while i < M:
-            if position[i] < cumulative_sum[j]:
-                indexes[i] = j
-                i += 1
-            else:
-                j += 1
+        indexes = np.searchsorted(cumulative_sum, np.random.rand(self.num_particles))
         return particles[indexes, :]
 
     def mean_and_variance(self, particles):
