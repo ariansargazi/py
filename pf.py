@@ -49,23 +49,25 @@ class ParticleFilter:
 
         return mean, cov
 
-    def resample(self, particles, weights):
-        """Sample new particles and weights given current particles and weights. Use the low-variance sampler."""
-        # YOUR CODE HERE
-        N = len(particles)
-        indices = []
-        C = np.cumsum(weights)
-        r = np.random.uniform(0, 1/N)
-        i = 0
-        for m in range(N):
-            u = r + m/N
-            while u > C[i]:
-                i += 1
-            indices.append(i)
-        resampled_particles = particles[indices]
-        self.weights = np.ones(self.num_particles) / self.num_particles  # Reset weights
+def resample(self, particles, weights):
+    # YOUR CODE HERE
+    N = len(particles)
+    positions = (np.arange(N) + np.random.random()) / N
 
-        return resampled_particles
+    indexes = np.zeros(N, 'i')
+    cumulative_sum = np.cumsum(weights)
+    i, j = 0, 0
+    while i < N:
+        if positions[i] < cumulative_sum[j]:
+            indexes[i] = j
+            i += 1
+        else:
+            j += 1
+
+    resampled_particles = particles[indexes]
+    self.weights = np.ones(self.num_particles) / self.num_particles  # Reset weights
+
+    return resampled_particles
 
     def mean_and_variance(self, particles):
         """Compute the mean and covariance matrix for a set of equally-weighted
