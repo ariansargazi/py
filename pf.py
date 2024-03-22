@@ -47,25 +47,16 @@ class ParticleFilter:
 
         return mean, cov
 
-def resample(self, particles, weights):
-    """Sample new particles and weights using the systematic resampling method."""
-    N = len(particles)
-    positions = (np.arange(N) + np.random.random()) / N
-
-    indexes = np.zeros(N, 'i')
-    cumulative_sum = np.cumsum(weights)
-    i, j = 0, 0
-    while i < N:
-        if positions[i] < cumulative_sum[j]:
-            indexes[i] = j
-            i += 1
-        else:
-            j += 1
-
-    resampled_particles = particles[indexes]
-    self.weights = np.ones(self.num_particles) / self.num_particles  # Reset weights
-
-    return resampled_particles
+    def resample(self):
+        """Resample the particles systematically."""
+        N = self.num_particles
+        cumsum_weights = np.cumsum(self.weights)
+        positions = (np.arange(N) + np.random.random()) / N
+        
+        indexes = np.searchsorted(cumsum_weights, positions)
+        resampled_particles = self.particles[indexes]
+        self.weights = np.ones(N) / N  # Reset weights
+        return resampled_particles
 
     def mean_and_variance(self, particles):
         """Compute the mean and covariance matrix for a set of equally-weighted
