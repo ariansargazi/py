@@ -10,7 +10,7 @@ def plot_mean_error(mean_array, title: str=""):
     plt.title(title)
     plt.xlabel('Step')
     plt.ylabel('Mean Error')
-    plt.save_fig()
+    plt.savefig()
     plt.close()
 
  def plot_mean_error(mean_array, title: str=""):
@@ -24,5 +24,5 @@ def plot_mean_error(mean_array, title: str=""):
     plt.title(title)
     plt.xlabel('Step')
     plt.ylabel('Covariance')
-    plt.save_fig()
+    plt.savefig()
     plt.close()
