@@ -10,7 +10,7 @@ def plot_mean_error(mean_array, title: str = ""):
     plt.title(title)
     plt.xlabel('Step')
     plt.ylabel('Mean Error')
-    plt.savefig()
+    plt.savefig('error.png')
 
 def plot_squared_sum_diag_cov(covariance_matrices, title: str = ""):
     plt.figure(figsize=(6, 4))
@@ -23,4 +23,4 @@ def plot_squared_sum_diag_cov(covariance_matrices, title: str = ""):
     plt.title(title)
     plt.xlabel('Step')
     plt.ylabel('Covariance')
-    plt.savefig()
+    plt.savefig('covariance_matrices.png')
