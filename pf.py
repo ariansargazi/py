@@ -86,6 +86,6 @@ class ParticleFilter:
         for i in range(zero_mean.shape[0]):
             zero_mean[i, 2] = Field.minimized_angle(zero_mean[i, 2])
         cov = np.dot((zero_mean*self.weights[:, np.newaxis]).T, zero_mean) / sum(self.weights)
-        cov += np.eye(3) * 1e-6
+        cov += np.eye(3) * 1e-300
 
         return mean.reshape((-1, 1)), cov
