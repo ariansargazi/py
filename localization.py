@@ -86,6 +86,7 @@ def pf_localization(env, policy, filt, x0, num_steps, plot=False, step_pause=0.,
         errors[i, :] = (mean - x_real).ravel()
         errors[i, 2] = Field.minimized_angle(errors[i, 2])
         position_errors[i] = np.linalg.norm(errors[i, :2])
+        
 
         cond_number = np.linalg.cond(cov)
         if cond_number > 1e12:
@@ -94,6 +95,7 @@ def pf_localization(env, policy, filt, x0, num_steps, plot=False, step_pause=0.,
             cov = np.eye(3)
         mahalanobis_errors[i] = \
             errors[i:i+1, :].dot(np.linalg.inv(cov)).dot(errors[i:i+1, :].T)
+        
 
     mean_position_error = position_errors.mean()
     mean_mahalanobis_error = mahalanobis_errors.mean()
@@ -103,6 +105,10 @@ def pf_localization(env, policy, filt, x0, num_steps, plot=False, step_pause=0.,
         print('Mean position error:', mean_position_error)
         print('Mean Mahalanobis error:', mean_mahalanobis_error)
 
+    plot_mean_error(position_errors, "Position Error Over Time", 'position_error_plot.png')
+    plot_mean_error(mahalanobis_errors, "Mahalanobis Error Over Time", 'mahalanobis_error_plot.png')
+    plot_squared_sum_diag_cov(cov_mats, "Covariance Values Over Time", 'covariance_values_plot.png')
+    
     if plot:
         while True:
             env.p.stepSimulation()
