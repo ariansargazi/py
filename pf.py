@@ -49,11 +49,6 @@ def update(self, env, u, z, marker_id):
     return mean, cov
 
     def resample(self, particles, weights):
-    """Sample new particles and weights given current particles and weights. Use the low-variance sampler from class.
-
-    particles: (n x 3) matrix of poses
-    weights: (n,) array of weights
-    """
     M = self.num_particles
     resampled_particles = np.zeros(particles.shape)
     cumulative_sum = np.cumsum(weights)
