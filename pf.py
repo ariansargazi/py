@@ -80,21 +80,21 @@ class ParticleFilter:
                 j += 1
         return resampled_particles
 
-    def mean_and_variance(self, particles):
-        """Compute the mean and covariance matrix for a set of equally-weighted
-        particles.
+def mean_and_variance(self, particles):
+    """Compute the mean and covariance matrix for a set of equally-weighted
+    particles.
 
-        particles: (n x 3) matrix of poses
-        """
-        mean = np.mean(particles, axis=0)
-        mean[2] = np.arctan2(
-            np.sum(np.sin(particles[:, 2])),
-            np.sum(np.cos(particles[:, 2]))
-        )
+    particles: (n x 3) matrix of poses
+    """
+    mean = np.mean(particles, axis=0)
+    mean[2] = np.arctan2(
+        np.sum(np.sin(particles[:, 2])),
+        np.sum(np.cos(particles[:, 2]))
+    )
 
-        zero_mean = particles - mean
-        zero_mean[:, 2] = Field.minimized_angle(zero_mean[:, 2])
-        cov = np.dot(zero_mean.T, zero_mean) / self.num_particles
-        cov += np.eye(particles.shape[1]) * 1e-6  # Avoid bad conditioning
+    zero_mean = particles - mean
+    zero_mean[:, 2] = np.array([Field.minimized_angle(zm) for zm in zero_mean[:, 2]])
+    cov = np.dot(zero_mean.T, zero_mean) / self.num_particles
+    cov += np.eye(particles.shape[1]) * 1e-6  # Avoid bad conditioning
 
-        return mean.reshape((-1, 1)), c
+    return mean.reshape((-1, 1)), cov
