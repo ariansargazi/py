@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 # Feel free to change the figure size and apply other improvements to these basic functions.
 # Use plt.save_fig instead of plt.show (or before that) to save your figures. 
 
-def plot_mean_error(mean_array, title: str = ""):
+def plot_mean_error(mean_array, title: filename):
     plt.figure(figsize=(6, 4))
     plt.plot(mean_array)
     plt.title(title)
@@ -13,7 +13,7 @@ def plot_mean_error(mean_array, title: str = ""):
     plt.savefig(filename)
     plt.close()
 
-def plot_squared_sum_diag_cov(covariance_matrices, title: str = ""):
+def plot_squared_sum_diag_cov(covariance_matrices, title: filename):
     plt.figure(figsize=(6, 4))
 
     diag_sums = []
