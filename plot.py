@@ -6,11 +6,19 @@ import matplotlib.pyplot as plt
 
 def plot_mean_error(mean_array, title: str = ""):
     plt.figure(figsize=(6, 4))
-    plt.plot(mean_array)
+    plt.plot(position_errors)
     plt.title(title)
     plt.xlabel('Step')
     plt.ylabel('Mean Error')
-    plt.show()
+    plt.save_fig()
+    
+    plt.figure(figsize=(6, 4))
+    plt.plot(mahalanobis_errors)
+    plt.title(title)
+    plt.xlabel('Step')
+    plt.ylabel('Mean Error')
+    plt.save_fig()
+
 
 def plot_squared_sum_diag_cov(covariance_matrices, title: str = ""):
     plt.figure(figsize=(6, 4))
@@ -23,4 +31,4 @@ def plot_squared_sum_diag_cov(covariance_matrices, title: str = ""):
     plt.title(title)
     plt.xlabel('Step')
     plt.ylabel('Covariance')
-    plt.show()
+    plt.save_fig()
