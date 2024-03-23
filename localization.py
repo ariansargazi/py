@@ -170,8 +170,4 @@ if __name__ == '__main__':
         args.filter_factor * beta
         )
 
-   plot_mean_error(position_errors, 'position_error_plot.png', "Position Error Over Time")
-   plot_mean_error(mahalanobis_errors, 'mahalanobis_error_plot.png', "Mahalanobis Error Over Time")
-   plot_squared_sum_diag_cov(cov_mats, 'covariance_plot.png', "Covariance Over Time")
-
     pf_localization(env, policy, filt, initial_mean, args.num_steps, args.gui, args.step_pause, args.step_breakpoint)
