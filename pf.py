@@ -45,7 +45,7 @@ class ParticleFilter:
             self.weights[i] = env.likelihood(innovation, self.beta)
 
         # Normalize weights
-        self.weights += 1.e-300      # Avoid round-off to zero
+        self.weights += 1.e-300      
         self.weights /= sum(self.weights)
 
         self.particles = self.resample(self.particles, self.weights)
@@ -86,6 +86,6 @@ class ParticleFilter:
         for i in range(zero_mean.shape[0]):
             zero_mean[i, 2] = Field.minimized_angle(zero_mean[i, 2])
         cov = np.dot((zero_mean*self.weights[:, np.newaxis]).T, zero_mean) / sum(self.weights)
-        cov += np.eye(3) * 1e-300  # Avoid singular covariance matrix
+        cov += np.eye(3) * 1e-6
 
         return mean.reshape((-1, 1)), cov
