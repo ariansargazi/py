@@ -12,8 +12,10 @@ class ParticleFilter:
         self.reset()
 
     def reset(self):
-        self.particles = np.random.multivariate_normal(
-            self._init_mean.ravel(), self._init_cov, self.num_particles)
+        self.particles = np.zeros((self.num_particles, 3))
+        for i in range(self.num_particles):
+            self.particles[i, :] = np.random.multivariate_normal(
+                self._init_mean.ravel(), self._init_cov)
         self.weights = np.ones(self.num_particles) / self.num_particles
 
     def move_particles(self, env, u):
