@@ -5,59 +5,85 @@ class ParticleFilter:
     def __init__(self, mean, cov, num_particles, alphas, beta):
         self.alphas = alphas
         self.beta = beta
-
         self._init_mean = mean
         self._init_cov = cov
         self.num_particles = num_particles
         self.reset()
 
     def reset(self):
-        self.particles = np.random.multivariate_normal(self._init_mean.ravel(), self._init_cov, self.num_particles)
+        self.particles = np.zeros((self.num_particles, 3))
+        for i in range(self.num_particles):
+            self.particles[i, :] = np.random.multivariate_normal(
+                self._init_mean.ravel(), self._init_cov)
         self.weights = np.ones(self.num_particles) / self.num_particles
 
     def move_particles(self, env, u):
-        new_particles = np.array([env.sample_noisy_action(u, self.alphas).ravel() for _ in range(self.num_particles)])
+        """Update particles after taking an action
+
+        u: action
+        """
+        new_particles = np.array([env.forward(p, u.ravel()) for p in self.particles])
         return new_particles
 
     def update(self, env, u, z, marker_id):
-        # Move particles with sampled noisy motion
-        new_particles = self.move_particles(env, u)
-        
-        # Update weights based on observation likelihood
-        for m in range(self.num_particles):
-            predicted_z = env.observe(new_particles[m], marker_id)
-            self.weights[m] *= env.likelihood(z - predicted_z, self.beta)
+        """Update the state estimate after taking an action and receiving
+        a landmark observation.
 
-        # Normalize weights
-        self.weights += 1.e-300  # Avoid round-off to zero
-        self.weights /= np.sum(self.weights)
+        u: action
+        z: landmark observation
+        marker_id: landmark ID
+        """
+        self.particles = self.move_particles(env, u)
         
-        # Resample based on updated weights
-        self.particles = self.resample(new_particles, self.weights)
+        for m in range(self.num_particles):
+            z_hat = env.observe(self.particles[m].reshape(-1,1), marker_id)
+            self.weights[m] *= Field.likelihood(z - z_hat, self.beta)
         
-        # Calculate mean and covariance
+        self.weights += 1.e-300  # avoid round-off to zero
+        self.weights /= sum(self.weights) # normalize
+        
+        self.particles = self.resample(self.particles, self.weights)
         mean, cov = self.mean_and_variance(self.particles)
 
         return mean, cov
 
     def resample(self, particles, weights):
-        indices = np.random.choice(range(self.num_particles), size=self.num_particles, p=weights)
-        resampled_particles = particles[indices]
-        self.weights = np.ones(self.num_particles) / self.num_particles  # Reset weights after resampling
+        """Sample new particles and weights given current particles and weights. Be sure
+        to use the low-variance sampler from class.
+
+        particles: (n x 3) matrix of poses
+        weights: (n,) array of weights
+        """
+        M = self.num_particles
+        resampled_particles = np.zeros(particles.shape)
+        index = int(np.random.rand()*M)
+        beta = 0.0
+        mw = max(weights)
+        for i in range(M):
+            beta += np.random.rand()*2.0*mw
+            while beta > weights[index]:
+                beta -= weights[index]
+                index = (index + 1) % M
+            resampled_particles[i] = particles[index]
+        
         return resampled_particles
 
     def mean_and_variance(self, particles):
-        mean = np.average(particles, weights=self.weights, axis=0)
-        # For the angle, need to use atan2 to properly average
+        """Compute the mean and covariance matrix for a set of equally-weighted
+        particles.
+
+        particles: (n x 3) matrix of poses
+        """
+        mean = particles.mean(axis=0)
         mean[2] = np.arctan2(
-            np.sum(np.sin(particles[:, 2]) * self.weights),
-            np.sum(np.cos(particles[:, 2]) * self.weights)
+            np.sin(particles[:, 2]).sum(),
+            np.cos(particles[:, 2]).sum(),
         )
-        # Compute covariance, need to account for circular statistics for angle
+
         zero_mean = particles - mean
-        zero_mean[:, 2] = (zero_mean[:, 2] + np.pi) % (2 * np.pi) - np.pi  # Normalize angles
-        cov = np.zeros((3, 3))
-        for i in range(self.num_particles):
-            cov += self.weights[i] * np.outer(zero_mean[i], zero_mean[i])
-        cov /= np.sum(self.weights)  # Normalize covariance by the sum of weights
+        for i in range(zero_mean.shape[0]):
+            zero_mean[i, 2] = Field.minimized_angle(zero_mean[i, 2])
+        cov = np.dot(zero_mean.T, zero_mean) / self.num_particles
+        cov += np.eye(particles.shape[1]) * 1e-6  # Avoid bad conditioning
+
         return mean.reshape((-1, 1)), cov
