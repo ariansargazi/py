@@ -11,71 +11,61 @@ class ParticleFilter:
         self.reset()
 
     def reset(self):
-        self.particles = np.zeros((self.num_particles, 3))
-        for i in range(self.num_particles):
-            self.particles[i, :] = np.random.multivariate_normal(
-                self._init_mean.ravel(), self._init_cov)
+        self.particles = np.array([np.random.multivariate_normal(
+            self._init_mean.ravel(), self._init_cov) for _ in range(self.num_particles)])
         self.weights = np.ones(self.num_particles) / self.num_particles
 
     def move_particles(self, env, u):
-        """Update particles after taking an action
-
-        u: action
-        """
-        new_particles = np.array([env.forward(p, u.ravel()) for p in self.particles])
+        """Update particles after taking an action u: action"""
+        new_particles = np.zeros_like(self.particles)
+        for i in range(self.num_particles):
+            noise_u = env.sample_noisy_action(u, self.alphas)
+            new_particles[i] = env.forward(self.particles[i], noise_u).ravel()
         return new_particles
 
     def update(self, env, u, z, marker_id):
         """Update the state estimate after taking an action and receiving
-        a landmark observation.
-
-        u: action
-        z: landmark observation
-        marker_id: landmark ID
-        """
+        a landmark observation. u: action z: landmark observation
+        marker_id: landmark ID"""
         self.particles = self.move_particles(env, u)
-        
-        for m in range(self.num_particles):
-            z_hat = env.observe(self.particles[m].reshape(-1,1), marker_id)
-            self.weights[m] *= Field.likelihood(z - z_hat, self.beta)
-        
-        self.weights += 1.e-300  # avoid round-off to zero
-        self.weights /= sum(self.weights) # normalize
-        
+        for i in range(self.num_particles):
+            predicted_observation = env.observe(self.particles[i], marker_id)
+            self.weights[i] *= Field.likelihood(z - predicted_observation, self.beta)
+
+        self.weights += 1.e-300      # avoid round-off to zero
+        self.weights /= np.sum(self.weights)  # normalize
         self.particles = self.resample(self.particles, self.weights)
         mean, cov = self.mean_and_variance(self.particles)
 
         return mean, cov
 
     def resample(self, particles, weights):
-        """Sample new particles and weights given current particles and weights. Be sure
-        to use the low-variance sampler from class.
-
-        particles: (n x 3) matrix of poses
-        weights: (n,) array of weights
-        """
-        M = self.num_particles
-        resampled_particles = np.zeros(particles.shape)
-        index = int(np.random.rand()*M)
-        beta = 0.0
-        mw = max(weights)
-        for i in range(M):
-            beta += np.random.rand()*2.0*mw
-            while beta > weights[index]:
-                beta -= weights[index]
-                index = (index + 1) % M
-            resampled_particles[i] = particles[index]
-        
+        """Sample new particles and weights given current particles and weights."""
+        indices = []
+        C = [0.] + [np.sum(weights[:i+1]) for i in range(len(weights))]
+        u0, j = np.random.random(), 0
+        for u in [(u0 + i) / len(weights) for i in range(len(weights))]:
+            while u > C[j]:
+                j += 1
+            indices.append(j-1)
+        resampled_particles = particles[indices]
+        self.weights = np.ones(self.num_particles) / self.num_particles  # reset weights
         return resampled_particles
 
     def mean_and_variance(self, particles):
         """Compute the mean and covariance matrix for a set of equally-weighted
-        particles.
+        particles."""
+        mean = np.mean(particles, axis=0)
+        mean[2] = np.arctan2(
+            np.sum(np.sin(particles[:, 2])),
+            np.sum(np.cos(particles[:, 2])),
+        )
+        mean[2] = Field.minimized_angle(mean[2])
 
-        particles: (n x 3) matrix of poses
-        """
-        mean = np.average(particles, weights=self.weights, axis=0)
-        centered_particles = particles - mean
-        cov = np.cov(centered_particles.T, aweights=self.weights)
+        zero_mean_particles = particles - mean
+        for i in range(zero_mean_particles.shape[0]):
+            zero_mean_particles[i, 2] = Field.minimized_angle(zero_mean_particles[i, 2])
 
-        return mean.reshape((-1, 1)), cov + np.eye(3) * 1e-6  # Avoid bad conditioning
+        cov = np.cov(zero_mean_particles.T) + np.eye(particles.shape[1]) * 1e-6  # Avoid singular matrix
+
+        return mean.reshape((-1, 1)), cov
