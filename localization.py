@@ -106,7 +106,7 @@ def pf_localization(env, policy, filt, x0, num_steps, plot=False, step_pause=0.,
         print('Mean Mahalanobis error:', mean_mahalanobis_error)
 
     plot_mean_error(position_errors, "Position Error Over Time")
-    plot_mean_error(mahalanobis_errors, "Mahalanobis Error Over Time")
+    plot_mean_error2(mahalanobis_errors, "Mahalanobis Error Over Time")
     plot_squared_sum_diag_cov(cov_mats, "Covariance Values Over Time")
     
     if plot:
