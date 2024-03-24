@@ -6,7 +6,7 @@ from env import Field
 from pf import ParticleFilter
 
 # TODO: use these plot utils to plot mean and covariance error
-from plot import plot_mean_error, plot_squared_sum_diag_cov
+from plot import plot_mean_error, plot_mean_error2, plot_squared_sum_diag_cov
 
 class OpenLoopRectanglePolicy:
     def __init__(self, dt=0.1):
