@@ -166,7 +166,7 @@ if __name__ == '__main__':
     policy = OpenLoopRectanglePolicy()
 
     initial_mean = np.array([220, 200, 0]).reshape((-1, 1))
-    initial_cov = np.diag([20000, 20000, 1]
+    initial_cov = np.diag([20000, 20000, 1])
 
     filt = ParticleFilter(
         initial_mean,
